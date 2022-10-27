@@ -34,6 +34,7 @@
           - krita
           - jq
           - mtr
+          - bashtop
 
     - block:
       - name: Verify if Oh-My-zsh is installed
