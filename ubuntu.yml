@@ -33,7 +33,6 @@
           - mlocate
           - krita
           - jq
-          - mtr
           - bashtop
 
     - block:
