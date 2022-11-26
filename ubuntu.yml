@@ -34,6 +34,7 @@
           - krita
           - jq
           - bashtop
+          - terminator
 
     - block:
       - name: Verify if Oh-My-zsh is installed
@@ -42,7 +43,7 @@
         ignore_errors: true
       - name: Installing Oh-My-zsh
         shell:
-          cmd: 'curl -fsL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | bash'
+          cmd: 'curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh'
           warn: false
         when: ohmyzsh.rc != 0
       - name: Changing Default Shell to ZSH
@@ -160,13 +161,6 @@
           dest: /usr/local/bin/gomplate
           mode: 755
 
-    - block:
-      - name: Installing Stern 1.11.0
-        become: true
-        get_url:    
-          url: 'https://github.com/wercker/stern/releases/download/1.11.0/stern_linux_amd64'
-          dest: /usr/local/bin/stern
-          mode: 755
 
     - block:
       - name: Install Google Cloud SDK Key
