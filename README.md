@@ -16,12 +16,12 @@ sudo apt update && sudo apt install ansible unzip git -y
 ```
 2. Clone this repository
 ```bash
-git clone https://github.com/caiodelgadonew/tools.git
+git clone https://github.com/Reisvmr/workstation.git
 ```
 
 3. Apply the configuration
 ```bash
-ansible-playbook tools/ubuntu.yml --ask-become-pass
+ansible-playbook workstation/ubuntu.yml --ask-become-pass
 ```
 >Type your password when asked to give root permissions for some actions.
 ___
@@ -30,6 +30,6 @@ ___
 GPLv3
 
 # Author Information
-Created by [Caio Delgado](https://linktr.ee/caiodelgadonew)
+Created by [Caio Delgado](https://linktr.ee/caiodCreated by [Caio Delgado](https://linktr.ee/caiodelgadonew)elgadonew)
 
 Contributions are more than welcome!
