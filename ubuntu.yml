@@ -35,6 +35,8 @@
           - jq
           - bashtop
           - nano
+          - net-tools
+          - nmap
           
 
     - block:
