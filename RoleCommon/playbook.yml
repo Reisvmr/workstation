@@ -1,0 +1,4 @@
+- name: Default Playbook - Starting Deploy
+  hosts: all
+  roles: 
+    - common 

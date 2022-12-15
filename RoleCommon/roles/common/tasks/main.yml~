@@ -1,0 +1,126 @@
+---
+
+- name: SISOP | Add Motd
+  template: src=motd.sh dest=/etc/motd.sh force=yes owner=root group=root mode=0755
+
+- name: SISOP | Change /etc/profile
+  lineinfile: dest=/etc/profile line={{ item }}
+  with_items:
+    - '#--- Default export & Alias ---#'
+    - 'export HISTTIMEFORMAT="%d/%m/%Y - %H:%M:%S - "'
+    - 'export HISTSIZE="5000"'
+    - 'export HISTFILESIZE="5000"'
+    - 'export TERM=linux'
+    - 'alias ls="ls -lh --color"'
+    - 'alias grep="grep --color"'
+    - 'alias vi="vim"'
+    - 'alias rm="rm -i"'
+    - '/etc/motd.sh'
+
+- name: SISOP | Disable SELINUX (Temp)
+  selinux: state=disabled
+  when: ansible_distribution == "CentOS" or ansible_distribution == "RedHat"
+
+- name: SISOP | Disable SELINUX (Permanet)
+  replace:
+      dest=/etc/selinux/config
+      regexp='SELINUX=enforcing'
+      replace='SELINUX=disabled'
+  when: ansible_distribution == "CentOS" or ansible_distribution == "RedHat"
+
+- name: YUM | Install epel-repository
+  yum: name=epel-release state=latest
+  when: ansible_distribution == "CentOS" or ansible_distribution == "RedHat"
+
+- name: SISOP | Enable PowerTool Repository
+  replace:
+      dest=/etc/yum.repos.d/CentOS-PowerTools.repo
+      regexp='enabled=0'
+      replace='enabled=1'
+  when: ansible_distribution_major_version == "8"
+
+- name: YUM | Update System
+  yum: name=* state=latest update_cache=yes
+  when: ansible_distribution == "CentOS" or ansible_distribution == "RedHat"
+
+- name: YUM | Install common packages
+  yum: name={{ common_packages_redhat }} state=latest
+  when: ansible_distribution == "CentOS" or ansible_distribution == "RedHat"
+
+- name: YUM | Remove packages
+  yum:
+    name: ['firewalld', 'postfix']
+    state: absent
+  when: ansible_distribution == "CentOS" or ansible_distribution == "RedHat"
+
+- name: Debian Like | Update Cache
+  apt: update_cache=yes
+  when: ansible_distribution == "Debian" or ansible_distribution == "Ubuntu"
+
+- name: Debian Like | Update System
+  apt: name="*" state=latest
+  when: ansible_distribution == "Debian" or ansible_distribution == "Ubuntu"
+
+- name: Debian Like | Install common packages
+  apt: name={{ common_packages_debian }} state=latest
+  when: ansible_distribution == "Debian" or ansible_distribution == "Ubuntu"
+
+- name: USERS | Change root password
+  user: name=root update_password=always password={{ root_pass_sha256 }}
+
+- name: USERS | Add user ozzy
+  user:
+    name=ozzy
+    comment="ozzy Tecnologia"
+    shell=/bin/bash
+    home=/home/ozzy
+    password={{ ozzy_pass_sha256 }}
+
+- name: USERS | Add user ozzy on Sudoers
+  lineinfile:
+    dest: /etc/sudoers
+    line: "ozzy    ALL=(ALL:ALL) NOPASSWD: ALL"
+
+- name: VIM | Copy .vimrc default
+  copy: src={{ item.src}} dest={{item.dest}}
+  with_items:
+          - { src: '.vimrc', dest: '/root/.vimrc' }
+
+- name: TIME | Configurando localtime
+  file: src=/usr/share/zoneinfo/{{ timezone }} dest=/etc/localtime state=link force=yes
+
+- name: SSH | Setting basic SSH options
+  lineinfile:
+    dest=/etc/ssh/sshd_config
+    state=present
+    regexp={{ item.regexp }}
+    line={{ item.line }}
+    backrefs=yes
+  with_items:
+    - { regexp: '#Port 22', line: 'Port 62222' }
+    - { regexp: '#PermitRootLogin yes', line: 'PermitRootLogin no' }
+    - { regexp: '#Banner none', line: 'Banner /etc/ssh/banner_ssh' }
+    - { regexp: '#StrictModes yes', line: 'StrictModes yes' }
+    - { regexp: 'X11Forwarding yes', line: 'X11Forwarding no' }
+
+- name: SSH | Add SSH Banner
+  copy: src=banner_ssh dest=/etc/ssh/banner_ssh 
+
+- name: SSH | Generate SSH keys to ozzy user
+  command: ssh-keygen -b 2048 -t rsa -f /home/ozzy/.ssh/id_rsa -N ''
+  args:
+    creates: /home/ozzy/.ssh/id_rsa
+  become: yes
+  become_user: ozzy
+
+- name: SSH | Set authorized_keys to ozzy
+  authorized_key:
+    user: ozzy
+    state: present
+    key: "{{ lookup('file', '{{ item }}') }}"
+  with_items:
+    - files/ozzy.key
+  notify: 
+    - Restart sshd
+
+...
