@@ -25,6 +25,9 @@ ansible-playbook workstation/ubuntu.yml --ask-become-pass
 ```
 >Type your password when asked to give root permissions for some actions.
 ___
+```bash
+ansible all -i localhost, -m debug -a "msg={‌{ 'SenhaSuperMegaPowerForte' | password_hash('sha512', 'mysecretsalt') }}"
+```
 
 # License
 GPLv3
