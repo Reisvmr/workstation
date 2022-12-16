@@ -4,7 +4,6 @@
 
 [windows_server]
 192.168.15.100
-
 [redhat]
 192.168.15.101
 
@@ -13,3 +12,6 @@
 
 [windows]
 192.168.15.100
+
+# 192.168.15.[100:200] Esta declaracao corresponde a um range
+
