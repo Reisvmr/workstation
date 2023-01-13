@@ -4,15 +4,17 @@
   connection: local
   
   tasks:
-    - name: Debian Like | Update Cache
-      apt: update_cache=yes
-      when: ansible_distribution == "Debian" or ansible_distribution == "Ubuntu"
+    #- name: Debian Like | Update Cache
+    #  become: true
+    #  apt: update_cache=yes
+    #  when: ansible_distribution == "Debian" or ansible_distribution == "Ubuntu"
+#
+    #- name: Debian Like | Update System
+    #  become: true
+    #  apt: name="*" state=latest
+    #  when: ansible_distribution == "Debian" or ansible_distribution == "Ubuntu"
 
-    - name: Debian Like | Update System
-      apt: name="*" state=latest
-      when: ansible_distribution == "Debian" or ansible_distribution == "Ubuntu"
-
-    - name: Installing Linux Apps
+    - name: Installing Linux App
       become: true
       apt:
         name: '{{ item }}'
@@ -49,7 +51,7 @@
 
     - block:
       - name: Verify if Oh-My-zsh is installed
-        command: test -d /home/{{ ansible_user_id }}/.oh-my-zsh
+        ansible.builtin.command: test -d /home/{{ansible_user_id}}/.oh-my-zsh
         register: ohmyzsh
         ignore_errors: true
       - name: Installing Oh-My-zsh
@@ -155,6 +157,38 @@
       - name: Renaming terraform1 binary
         become: true
         command: mv /usr/local/bin/terraform /usr/local/bin/terraform1
+      
+      - name: Installing Terraform 1.1.9
+        become: true
+        unarchive:
+          src: 'https://releases.hashicorp.com/terraform/1.1.9/terraform_1.1.9_linux_amd64.zip'
+          dest: /usr/local/bin
+          remote_src: yes
+      - name: Renaming terraform1.1.9 binary
+        become: true
+        command: mv /usr/local/bin/terraform /usr/local/bin/terraform119
+      
+      - name: Installing Terraform 1.2.9
+        become: true
+        unarchive:
+          src: 'https://releases.hashicorp.com/terraform/1.2.9/terraform_1.2.9_linux_amd64.zip'
+          dest: /usr/local/bin
+          remote_src: yes
+      - name: Renaming terraform1.2.9 binary
+        become: true
+        command: mv /usr/local/bin/terraform /usr/local/bin/terraform129
+      
+      - name: Installing Terraform 1.3.7
+        become: true
+        unarchive:
+          src: 'https://releases.hashicorp.com/terraform/1.3.7/terraform_1.3.7_linux_amd64.zip'
+          dest: /usr/local/bin
+          remote_src: yes
+      - name: Renaming terraform1.3.7 binary
+        become: true
+        command: mv /usr/local/bin/terraform /usr/local/bin/terraform137
+
+      
 
     - block:
       - name: Installing Vault 1.8.1
