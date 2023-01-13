@@ -233,6 +233,7 @@
           state: present
       - name: Install VSCode Repository
         become: true
+        ignore_errors: true
         apt_repository:
           repo: 'deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main'
           state: present
