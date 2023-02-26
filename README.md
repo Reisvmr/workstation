@@ -36,3 +36,21 @@ GPLv3
 Created by [Caio Delgado](https://linktr.ee/caiodCreated by [Caio Delgado](https://linktr.ee/caiodelgadonew)elgadonew)
 
 Contributions are more than welcome!
+
+
+## INSTALL Oh My Zsh
+
+### Via Curl
+```bash
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+```
+## Via Wget
+
+Para instalar via wget, digite o seguinte comando no terminal:
+```bash
+sh -c "$(wget https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
+```
+
+A partir de agora, todas configurações que você quiser fazer, como adicionar variáveis ambientes ou configurar seu terminal de qualquer forma, você irá utilizar o arquivo ~/.zshrc e não mais o ~/.bash_profile ou derivados.
+
+Reinicie o seu terminal e veja que agora ele está diferente do normal, parecido com isso:
