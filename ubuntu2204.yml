@@ -4,16 +4,22 @@
   connection: local
   
   tasks:
-    #- name: Debian Like | Update Cache
-    #  become: true
-    #  apt: update_cache=yes
-    #  when: ansible_distribution == "Debian" or ansible_distribution == "Ubuntu"
-#
-    #- name: Debian Like | Update System
-    #  become: true
-    #  apt: name="*" state=latest
-    #  when: ansible_distribution == "Debian" or ansible_distribution == "Ubuntu"
+    - name: Ubuntu Like | Update Cache
+      become: true
+      apt:
+        update_cache: yes
+        cache_valid_time: 600
+      when: ansible_distribution == "Ubuntu"
 
+    - name: Ubuntu Like | Update System
+      become: true
+      apt:
+        upgrade: dist
+        autoremove: yes
+        autoclean: yes
+        force_apt_get: yes
+      when: ansible_distribution == "Ubuntu"
+    
     - name: Installing Linux App
       become: true
       apt:
@@ -47,10 +53,55 @@
           - nano
           - net-tools
           - nmap
-          - zsh
-          - vim-nox
-          - zsh-syntax-highlighting
+          - zsh-autosuggestions
+          - fzf
           
+          
+    - block:  
+      - name: Install Terminator
+        become: true
+        apt:
+          name: terminator
+          state: present
+
+    
+      - name: Install and configure ZSH
+        become: true
+        apt:
+          name: zsh
+          state: present
+      
+      - name: Configurar o Zsh como shell padrão
+        become: true
+        shell: chsh -s /usr/bin/zsh
+      
+      - name: Baixar o Oh-My-Zsh
+        git:
+          repo: https://github.com/ohmyzsh/ohmyzsh.git
+          dest: "{{ ansible_user_dir }}/.oh-my-zsh"
+      
+      - name: Configurar o arquivo .zshrc
+        become: true
+        template:
+          src: templates/zshrc.j2
+          dest: "{{ ansible_user_dir }}/.zshrc"
+        become: false
+      
+      - name: Ativar Oh-My-Zsh
+        become: true
+        shell: |
+          source "/home/reisvmr/.oh-my-zsh/oh-my-zsh.sh"
+          source "/home/reisvmr/.zshrc"
+        args:
+          executable: /usr/bin/zsh
+        
+      #- name: Create ZSH configuration file
+      #  become: true
+      #  template:
+      #    src: zshrc.j2
+      #    dest: ~/.zshrc
+
+    
 
     - name: Installing AWS CLI via pip3
       become: true
@@ -205,7 +256,23 @@
         become: true
         apt:
           name: golang-go
-          
+    - block:
+      - name: Installing Terraform
+        become: true
+        get_url:
+          url: https://releases.hashicorp.com/terraform/1.0.10/terraform_1.0.10_linux_amd64.zip
+          dest: /tmp/terraform.zip
+        register: terraform_download
+
+      - name: Extracting Terraform
+        become: true
+        unarchive:
+          src: /tmp/terraform.zip
+          dest: /usr/local/bin/
+          remote_src: yes
+          creates: /usr/local/bin/terraform
+        when: terraform_download.changed
+
 # OPTIONAL:
 #  - PEEK - Lightweight Screen Recorder that can export as GIF
 #  - OBS-STUDIO - Screen Recorder and Casting Software 

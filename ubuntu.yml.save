@@ -50,7 +50,76 @@
           - zsh
           - vim-nox
           - zsh-syntax-highlighting
-          
+    - block:
+      - name: clone oh-my-zsh
+        tags:
+          # Suppress warning: [ANSIBLE0006] git used in place of git module
+          # Git module doesn't allow us to set `core.autocrlf=input`.
+          - skip_ansible_lint
+        become: "yes"
+        become_user: '{{ username }}'
+        command: >-
+          git clone -c core.autocrlf=input --depth=1
+           https://github.com/ohmyzsh/ohmyzsh .oh-my-zsh
+        # core.autocrlf=input prevents
+        # https://github.com/robbyrussell/oh-my-zsh/issues/4402
+        args:
+          chdir: '~{{ username }}'
+          creates: '~{{ username }}/.oh-my-zsh'
+        with_items: "{{ users | map(attribute='username') | list }}"
+        loop_control:
+          loop_var: username
+      - name: set permissions of oh-my-zsh
+        become: "yes"
+        file:
+          path: '~{{ username }}/.oh-my-zsh'
+          # Prevent the cloned repository from having insecure permissions.
+          # Failing to do so causes compinit() calls to fail with
+          # "command not found: compdef" errors
+          # for users with insecure umasks (e.g., "002", allowing group writability).
+          mode: 'go-w'
+          recurse: "yes"
+        with_items: "{{ users | map(attribute='username') | list }}"
+        loop_control:
+        loop_var: username
+
+
+    - block:
+      - name: Verify if Oh-My-zsh is installed
+        ansible.builtin.command: test -d /home/{{ansible_user_id}}/.oh-my-zsh
+        register: ohmyzsh
+        ignore_errors: true
+
+      - name: Installing Oh-My-zsh
+        ignore_errors: true
+        shell:
+          cmd: 'curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh'
+          warn: false
+        when: ohmyzsh.rc != 0
+      - name: Changing Default Shell to ZSH
+        ignore_errors: true
+        become: yes
+        user: 
+          name: '{{ ansible_user_id }}'
+          shell: /bin/zsh 
+      - name: Changing Default ZSH Theme to Agnoster
+        ignore_errors: true
+        lineinfile:
+          path: /home/{{ ansible_user_id }}/.zshrc
+          regexp: '^ZSH_THEME='
+          line: 'ZSH_THEME="agnoster"'
+      - name: Creating ZSH Completion folder
+        ignore_errors: true
+        file:
+          path: /home/{{ ansible_user_id }}/.oh-my-zsh/completions
+          state: directory
+          mode: 0755
+      - name: Adding autoload to compinit
+        ignore_errors: true
+        lineinfile:
+          path: /home/{{ ansible_user_id }}/.zshrc
+          line: 'autoload -U compinit && compinit'
+          state: present
 
     - name: Installing AWS CLI via pip3
       become: true
@@ -84,6 +153,22 @@
           remote_src: yes
 
     - block:
+      - name: Terraform - Install GPG key
+        ansible.builtin.apt_key:
+        url: https://apt.releases.hashicorp.com/gpg
+        state: present
+
+      - name: Terraform - Install PPA
+        ansible.builtin.apt_repository:
+        repo: "deb [arch={{ host_arch }}] https://apt.releases.hashicorp.com focal main"
+        state: present
+      - name: Terraform - Install apt package
+        apt:
+          name: "terraform"
+          state: present
+          update_cache: "yes"
+
+    - block:
       - name: Installing Vault 1.8.1
         become: true
         unarchive:
@@ -100,6 +185,24 @@
           mode: 755
 
 
+    - block:
+      - name: Install Google Cloud SDK Key
+        become: true
+        apt_key:
+          url: 'https://packages.cloud.google.com/apt/doc/apt-key.gpg'
+          state: present
+      - name: Install Google Cloud SDK Repository
+        become: true
+        apt_repository:
+          repo: 'deb [arch=amd64] https://packages.cloud.google.com/apt cloud-sdk main'
+          state: present
+          filename: google-cloud-sdk
+      - name: Install Google Cloud SDK
+        become: true
+        apt:
+          name: google-cloud-sdk
+
+          
     - block:
       - name: Install Microsoft Key
         become: true
@@ -195,6 +298,14 @@
         with_items:
           - kubectx
           - kubens  
+      - name: Creating ZSH Completion  
+        file:
+          src: '/opt/kubectx/completion/{{ item }}'
+          dest: '/home/{{ ansible_user_id }}/.oh-my-zsh/completions/_{{ item }}'
+          state: link
+        with_items:
+          - kubectx.zsh
+          - kubens.zsh 
           
     - block:
       - name: Adding Longsleep/Golang Backports Repository

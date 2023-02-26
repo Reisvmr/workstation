@@ -1,0 +1,20 @@
+{% raw %}
+# Set ZSH as default shell
+if [ -z "$ZSH_VERSION" ]; then
+   exec /bin/zsh -l
+fi
+
+# Set ZSH theme
+ZSH_THEME="agnoster"
+
+# Load ZSH plugins
+plugins=(
+  git
+  zsh-syntax-highlighting
+  zsh-autosuggestions
+  fzf
+)
+
+# Configure aliases
+alias ll='ls -alF'
+{% endraw %}
