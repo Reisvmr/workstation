@@ -187,38 +187,45 @@
         apt_key:
           url: 'https://download.docker.com/linux/ubuntu/gpg'
           state: present
+
       - name: Install Docker Repository
         become: true
         apt_repository:
           repo: 'deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable'
           state: present
           filename: docker-ce
+
       - name: Install Docker
         become: true
         apt:
           name: docker-ce
+
       - name: Adding existing user to group Docker
         become: yes
         user: 
           name: '{{ ansible_user_id }}'
           groups: docker 
           append: yes
+
       - name: Install Docker-Compose
         become: true
         get_url:
           url: 'https://github.com/docker/compose/releases/download/1.26.2/docker-compose-Linux-x86_64'
           dest: '/usr/local/bin/docker-compose'
           mode: 755
+
       - name: Install Docker Machine Bash Completion
         become: true
         get_url:
           url: 'https://raw.githubusercontent.com/docker/machine/v0.16.0/contrib/completion/bash/docker-machine.bash'
           dest: '/etc/bash_completion.d/docker-machine'
+
       - name: Install Docker-Compose Bash Completion
         become: true
         get_url:
           url: 'https://raw.githubusercontent.com/docker/compose/1.26.2/contrib/completion/bash/docker-compose'
           dest: '/etc/bash_completion.d/docker-compose'
+          
       - name: Install Docker-Compose and Docker Machine Zsh Completion
         lineinfile:
           path: /home/{{ ansible_user_id }}/.zshrc
