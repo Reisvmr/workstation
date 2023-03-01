@@ -65,15 +65,15 @@
           state: present
 
     
-      - name: Install and configure ZSH
-        become: true
-        apt:
-          name: zsh
-          state: present
+      #- name: Install and configure ZSH
+      #  become: true
+      #  apt:
+      #    name: zsh
+      #    state: present
       
-      - name: Configurar o Zsh como shell padrão
-        become: true
-        shell: chsh -s /usr/bin/zsh
+      #- name: Configurar o Zsh como shell padrão
+      #  become: true
+      #  shell: chsh -s /usr/bin/zsh
       
       - name: Baixar o Oh-My-Zsh
         git:
