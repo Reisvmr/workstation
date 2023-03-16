@@ -53,8 +53,7 @@
           - nano
           - net-tools
           - nmap
-          - zsh-autosuggestions
-          - fzf
+
           
           
     - block:  
@@ -75,10 +74,17 @@
       #  become: true
       #  shell: chsh -s /usr/bin/zsh
       
-      - name: Baixar o Oh-My-Zsh
-        git:
-          repo: https://github.com/ohmyzsh/ohmyzsh.git
-          dest: "{{ ansible_user_dir }}/.oh-my-zsh"
+      - name: Baixar e instalar o Oh-My-Zsh
+        shell: sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+      
+      - name: Instalar plugins do Oh-My-Zsh
+        shell: |
+          git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+          git clone https://github.com/zsh-users/zsh-autosuggestions ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+
+        #git:
+        #  repo: https://github.com/ohmyzsh/ohmyzsh.git
+        #  dest: "{{ ansible_user_dir }}/.oh-my-zsh"
       
       - name: Configurar o arquivo .zshrc
         become: true
@@ -87,13 +93,13 @@
           dest: "{{ ansible_user_dir }}/.zshrc"
         become: false
       
-      - name: Ativar Oh-My-Zsh
-        become: true
-        shell: |
-          source "/home/reisvmr/.oh-my-zsh/oh-my-zsh.sh"
-          source "/home/reisvmr/.zshrc"
-        args:
-          executable: /usr/bin/zsh
+      #- name: Ativar Oh-My-Zsh
+      #  become: true
+      #  shell: |
+      #    source "/home/reisvmr/.oh-my-zsh/oh-my-zsh.sh"
+      #    source "/home/reisvmr/.zshrc"
+      #  args:
+      #    executable: /usr/bin/zsh
         
       #- name: Create ZSH configuration file
       #  become: true
