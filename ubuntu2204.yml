@@ -53,6 +53,13 @@
           - nano
           - net-tools
           - nmap
+          - ubuntu-restricted-extras
+          - gdebi
+          - synaptic
+          - gnome-software
+          - chrome-gnome-shell
+          - gnome-shell-extensions
+          
 
           
           
