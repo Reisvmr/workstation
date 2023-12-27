@@ -1,2 +1,97 @@
 ---
 # vars file for My-PC
+terraform_version: "1.1.0"  # Substitua pela versão desejada
+terraform_url: "https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_linux_amd64.zip"
+terraform_install_path: "/usr/local/bin"
+
+#### DOCKER
+docker_gpg_key: "https://download.docker.com/linux/ubuntu/gpg"
+docker_repo_ubuntu: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+docker_compose_version: "1.29.2"  # Update to the latest version
+docker_compose_url: "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-{{ ansible_system }}-{{ ansible_userspace_architecture }}"
+
+### KUBECTL
+
+kubectl_version: "1.22.0"
+kubectl_url: "https://dl.k8s.io/release/v{{ kubectl_version }}/bin/linux/amd64/kubectl"
+kubectl_dest: "/usr/local/bin/kubectl"
+kubectx_repo: "https://github.com/ahmetb/kubectx"
+kubectx_dest: "/opt/kubectx"
+#####oh_my_zsh
+user_home: "/home/{{ ansible_user_id }}"
+zsh_theme: "agnoster"
+oh_my_zsh_install_script: "https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
+
+# defaults file for My-PC
+timezone: America/Sao_Paulo
+ozzy_pass_sha256: "$1$SomeSalt$Lr3HNooRw/PUoU3zA4Nt7."
+reisvmr_pass_sha256: "$6$mysecretsalt$EtC07NUwWh1kp1v6oVWLMczaH2zz0DykAd6svMavij5vInGhQw.NpUpepGuPxrwDZrQiyUsnWJyOsG2sAA7Fz0"
+root_pass_sha256: "$1$SomeSalt$Lr3HNooRw/PUoU3zA4Nt7."
+#############
+vagrant_install_path: "/usr/local/bin"
+terraform_install_path: "/usr/local/bin"
+###################
+common_packages_redhat:
+  - "@Development tools"
+  - bind-utils
+  - bc
+  - bzip2
+  - curl
+  - elinks
+  - git
+  - htop
+  - iperf3
+  - iptraf
+  - lsof
+  - lynx
+  - mtr
+  - net-tools
+  - nmap
+  - pv
+  - screen
+  - tcpdump
+  - telnet
+  - unzip
+  - vim
+  - wget
+  - aspell
+  - bash-completion
+  - tree
+
+common_packages_debian:
+  - build-essential
+  - net-tools
+  - bc
+  - sudo
+  - screen
+  - tcpdump
+  - telnet
+  - nmap
+  - vim
+  - tree
+  - vim
+  - htop
+  - curl
+  - wget
+  - ncdu
+  - tree
+  - apt-transport-https
+  - ca-certificates
+  - gnupg
+  - python3-pip
+  - make
+  - git
+  - bash-completion
+  - gnupg-agent
+  - zsh
+  - flameshot
+  - fonts-hack
+  - tilix
+  - virtualbox
+  - mlocate
+  - krita
+  - jq
+  - bashtop
+  - nano
+  - net-tools
+  - nmap
