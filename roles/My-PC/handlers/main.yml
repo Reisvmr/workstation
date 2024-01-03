@@ -1,0 +1,5 @@
+---
+# handlers file for My-PC
+
+- name: Refresh Shell
+  shell: exec $SHELL

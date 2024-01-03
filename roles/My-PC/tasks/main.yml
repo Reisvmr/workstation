@@ -19,33 +19,46 @@
     name: '{{ common_packages_debian }}' 
     install_recommends: yes
     state: latest
-    when: ansible_distribution == "Debian" or ansible_distribution == "Ubuntu"
-########################
- # Configurando o Shell
-########################
+  when: ansible_distribution == "Debian" or ansible_distribution == "Ubuntu"
+  #####################
+- name: Install Terminator
+  apt:
+    name: terminator
+    state: present
+#######################
+# Configurando o Shell#
+#######################
 - name: Check if Oh-My-Zsh is installed
   stat:
     path: "{{ user_home }}/.oh-my-zsh"
   register: ohmyzsh
   become_user: "{{ ansible_user_id }}"
 
-- name: Install Oh-My-Zsh
-  ansible.builtin.get_url:
-    url: "{{ oh_my_zsh_install_script }}"
-    dest: "/tmp/install_oh_my_zsh.sh"
-    mode: '0755'
-  when: ohmyzsh.stat.exists == false
+- block:
+  - name: Install Oh-My-Zsh
+    ansible.builtin.get_url:
+      url: "{{ oh_my_zsh_install_script }}"
+      dest: "/tmp/install_oh_my_zsh.sh"
+      mode: '0755'
 
-- name: Execute Oh-My-Zsh installation script
-  ansible.builtin.command:
-    cmd: sh /tmp/install_oh_my_zsh.sh
-  become_user: "{{ ansible_user_id }}"
-  when: ohmyzsh.stat.exists == false
+  - name: Remove existing Oh-My-Zsh installation
+    ansible.builtin.file:
+      path: "{{ user_home }}/.oh-my-zsh"
+      state: absent
+    when: ohmyzsh.stat.exists
+    become_user: "{{ ansible_user_id }}"
 
-- name: Change default shell to ZSH
-  ansible.builtin.user:
-    name: "{{ ansible_user_id }}"
-    shell: /bin/zsh
+  - name: Change default shell to ZSH
+    ansible.builtin.user:
+      name: "{{ ansible_user_id }}"
+      shell: /bin/zsh
+    when: ansible_facts['distribution'] in ["Debian", "Ubuntu"] # Exemplo de verificação do SO
+
+  - name: Remove installation script
+    ansible.builtin.file:
+      path: "/tmp/install_oh_my_zsh.sh"
+      state: absent
+
   when: ohmyzsh.stat.exists == false
 
 - name: Set ZSH theme to Agnoster
@@ -97,77 +110,108 @@
 ########################
 # Preparando Vagrant   #
 ########################
-- name: Determine the latest Vagrant version
+- name: Determinar a versão mais recente do Vagrant
   uri:
     url: https://releases.hashicorp.com/vagrant/index.json
     return_content: yes
   register: vagrant_releases
   become: false
 
-- name: Set Vagrant latest version variable
+- name: Definir a variável da versão mais recente do Vagrant
   set_fact:
-    latest_vagrant_version: "{{ (vagrant_releases.json.versions.keys() | list | sort(version_compare) | reverse)[0] }}"
+    latest_vagrant_version: "{{ vagrant_releases.json.versions.keys() | max }}"
 
-- name: Check if the latest Vagrant is installed
+- name: Verificar se a versão mais recente do Vagrant está instalada
   command: "{{ vagrant_install_path }}/vagrant --version"
   register: vagrant_installed
   ignore_errors: true
 
-- name: Download the latest Vagrant version
+- name: Analisar a versão instalada do Vagrant
+  set_fact:
+    installed_vagrant_version: "{{ vagrant_installed.stdout | regex_search('Vagrant (\\d+\\.\\d+\\.\\d+)', '\\1') | first }}"
+  when: vagrant_installed.stdout is defined
+
+- name: Baixar a versão mais recente do Vagrant
   get_url:
     url: "https://releases.hashicorp.com/vagrant/{{ latest_vagrant_version }}/vagrant_{{ latest_vagrant_version }}_linux_amd64.zip"
     dest: "/tmp/vagrant_latest.zip"
     mode: '0755'
-  when: vagrant_installed.stdout is not search(latest_vagrant_version)
+  when: latest_vagrant_version != installed_vagrant_version
 
-- name: Extract the latest Vagrant version
+- name: Extrair a versão mais recente do Vagrant
   unarchive:
     src: "/tmp/vagrant_latest.zip"
     dest: "{{ vagrant_install_path }}"
     remote_src: yes
-  when: vagrant_installed.stdout is not search(latest_vagrant_version)
+  when: latest_vagrant_version != installed_vagrant_version
+
+- name: Remover arquivo zip do Vagrant baixado
+  file:
+    path: "/tmp/vagrant_latest.zip"
+    state: absent
+  when: latest_vagrant_version != installed_vagrant_version
+
+# Adicione tarefas adicionais se necessário para passos de instalação, como adicionar o Vagrant ao PATH
 
 ########################
 # Preparando Terraform #
 ########################
-- name: Determine the latest Terraform version
+- name: Determinar a versão mais recente do Terraform
   uri:
     url: https://releases.hashicorp.com/terraform/index.json
     return_content: yes
   register: terraform_releases
   become: false
 
-- name: Set Terraform latest version variable
+- name: Definir a variável da versão mais recente do Terraform
   set_fact:
-    latest_terraform_version: "{{ (terraform_releases.json.versions.keys() | list | sort(version_compare) | reverse)[0] }}"
+    latest_terraform_version: "{{ terraform_releases.json.versions.keys() | max }}"
 
-- name: Check if the latest Terraform is installed
+- name: Verificar se a versão mais recente do Terraform está instalada
   command: "{{ terraform_install_path }}/terraform version"
   register: terraform_installed
   ignore_errors: true
 
-- name: Download the latest Terraform version
+- name: Definir a variável da versão instalada do Terraform como vazia
+  set_fact:
+    installed_terraform_version: ""
+  when: terraform_installed is skipped or terraform_installed.rc != 0
+
+- name: Analisar a versão instalada do Terraform
+  set_fact:
+    installed_terraform_version: "{{ terraform_installed.stdout | regex_search('Terraform v(\\d+\\.\\d+\\.\\d+)', '\\1') | first }}"
+  when: terraform_installed.stdout is defined and terraform_installed.rc == 0
+
+- name: Baixar a versão mais recente do Terraform
   get_url:
     url: "https://releases.hashicorp.com/terraform/{{ latest_terraform_version }}/terraform_{{ latest_terraform_version }}_linux_amd64.zip"
     dest: "/tmp/terraform_latest.zip"
     mode: '0755'
-  when: terraform_installed.stdout is not search(latest_terraform_version)
+  when: latest_terraform_version != installed_terraform_version
 
-- name: Extract the latest Terraform version
+- name: Extrair a versão mais recente do Terraform
   unarchive:
     src: "/tmp/terraform_latest.zip"
     dest: "{{ terraform_install_path }}"
     remote_src: yes
     creates: "{{ terraform_install_path }}/terraform"
-  when: terraform_installed.stdout is not search(latest_terraform_version)
+  when: latest_terraform_version != installed_terraform_version
 
-- name: Verify Terraform installation
+- name: Remover arquivo zip do Terraform baixado
+  file:
+    path: "/tmp/terraform_latest.zip"
+    state: absent
+  when: latest_terraform_version != installed_terraform_version
+
+- name: Verificar instalação do Terraform
   command: "{{ terraform_install_path }}/terraform version"
   register: terraform_version_output
+  ignore_errors: true
 
-- name: Display Terraform version
+- name: Exibir versão do Terraform
   debug:
     msg: "{{ terraform_version_output.stdout }}"
+  when: terraform_version_output.stdout is defined
 
 ########################
 #   FIM Terraform      #
@@ -190,43 +234,52 @@
     mode: 755
 
 # Install Google Cloud SDK
-- name: Install Google Cloud SDK Key
-  become: true
+- name: Adicionar a chave do repositório do Google Cloud
   apt_key:
-    url: 'https://packages.cloud.google.com/apt/doc/apt-key.gpg'
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
     state: present
 
-- name: Install Google Cloud SDK Repository
-  become: true
+- name: Adicionar repositório do Google Cloud SDK
   apt_repository:
-    repo: 'deb [arch=amd64] https://packages.cloud.google.com/apt cloud-sdk main'
+    repo: 'deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main'
     state: present
-    filename: google-cloud-sdk
+    filename: 'google-cloud-sdk'
 
-- name: Install Google Cloud SDK
-  become: true
+- name: Instalar o Google Cloud SDK
   apt:
-    name: google-cloud-sd
-          
-# Install Microsoft
-- name: Install Microsoft Key
+    name: google-cloud-sdk
+    #update_cache: yes
+    state: latest
+#####################    
+# Instalar Microsoft #
+#####################
+- name: Instalar Chave da Microsoft
   become: true
   apt_key:
     url: 'https://packages.microsoft.com/keys/microsoft.asc'
     state: present
-- name: Install VSCode Repository
+
+- name: Instalar Repositório do VSCode
   become: true
   apt_repository:
     repo: 'deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main'
     state: present
     filename: vscode
-- name: Install Visual Studio Code
+    update_cache: yes
+
+
+- name: Instalar Visual Studio Code
   become: true
   apt:
     name: code
-- name: Install Virtual Studio Code Extensions
+    state: present
+    update_cache: yes
+  ignore_errors: true
+
+- name: Instalar Extensões do Visual Studio Code
+  become: false
   shell:
-    cmd: code --install-extension '{{ item }}' 
+    cmd: code --install-extension '{{ item }}'
   loop: 
     - ms-python.python
     - ms-azuretools.vscode-docker
@@ -236,42 +289,51 @@
     - njpwerner.autodocstring
     - eamodio.gitlens
     - redhat.ansible
+  ignore_errors: true
 
-# Install Docker
-- name: Install Docker Key (Ubuntu/Debian)
+#######################
+#   Install Docker    #
+#######################
+# Instalar chave GPG do Docker
+- name: Instalar chave GPG do Docker (Ubuntu/Debian)
   apt_key:
     url: "{{ docker_gpg_key }}"
     state: present
   when: ansible_os_family == "Debian"
 
-- name: Install Docker Repository (Ubuntu/Debian)
+    # Adicionar repositório do Docker
+- name: Instalar repositório do Docker (Ubuntu/Debian)
   apt_repository:
     repo: "{{ docker_repo_ubuntu }}"
     state: present
     filename: docker-ce
+    #update_cache: yes
   when: ansible_os_family == "Debian"
 
-- name: Install Docker CE (Ubuntu/Debian)
+    # Instalar Docker CE
+- name: Instalar Docker CE (Ubuntu/Debian)
   apt:
     name: docker-ce
     state: latest
+    update_cache: yes
   when: ansible_os_family == "Debian"
 
- # Add similar tasks for Red Hat/CentOS using yum module
-
-- name: Add existing user to Docker group
+    # Adicionar o usuário atual ao grupo Docker
+- name: Adicionar usuário atual ao grupo Docker
   user:
     name: "{{ ansible_user_id }}"
     groups: docker
     append: yes
 
-- name: Install Docker-Compose
+    # Instalar Docker-Compose
+- name: Instalar Docker-Compose
   get_url:
     url: "{{ docker_compose_url }}"
     dest: "/usr/local/bin/docker-compose"
     mode: '0755'
 
-- name: Install Docker and Docker-Compose Bash Completion (Ubuntu/Debian)
+    # Instalar conclusões de comando do Docker e Docker-Compose para Bash
+- name: Instalar conclusões de comando do Docker e Docker-Compose para Bash (Ubuntu/Debian)
   get_url:
     url: "{{ item.url }}"
     dest: "{{ item.dest }}"
@@ -281,19 +343,26 @@
     - { url: "https://raw.githubusercontent.com/docker/compose/{{ docker_compose_version }}/contrib/completion/bash/docker-compose", dest: "/etc/bash_completion.d/docker-compose" }
   when: ansible_os_family == "Debian"
 
-- name: Ensure .zshrc exists for Docker-Compose and Docker Machine Zsh Completion
+# Assegurar que o arquivo .zshrc exista para o usuário atual
+- name: Garantir que o arquivo .zshrc exista para o usuário atual
   file:
     path: "/home/{{ ansible_user_id }}/.zshrc"
     state: touch
     mode: '0644'
 
-- name: Add Docker-Compose and Docker Machine to Zsh plugins
+# Adicionar plugins do Docker e Docker-Compose ao Zsh
+- name: Adicionar plugins do Docker e Docker-Compose ao Zsh
   lineinfile:
     path: "/home/{{ ansible_user_id }}/.zshrc"
-    regexp: '^plugins=\('
+    regexp: '^\s*plugins=\((?!.*docker.*docker-compose.*)'
     line: 'plugins=(git docker docker-compose)'
     backrefs: yes
-        
+    insertafter: EOF
+  when: ansible_shell_type == 'zsh'
+
+###########################
+#                         #
+###########################
 # Installing Kubectl
 - name: Check if kubectl is installed
   command: "{{ kubectl_dest }} version --client=true"
@@ -339,9 +408,7 @@
     - kubectx.zsh
     - kubens.zsh
 
-handlers:
-  - name: Refresh Shell
-    shell: exec $SHELL
+
     
 # Install Golang 
 - name: Adding Longsleep/Golang Backports Repository
