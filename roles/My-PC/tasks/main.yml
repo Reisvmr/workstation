@@ -137,6 +137,7 @@
     dest: "/tmp/vagrant_latest.zip"
     mode: '0755'
   when: latest_vagrant_version != installed_vagrant_version
+  ignore_errors: true
 
 - name: Extrair a versão mais recente do Vagrant
   unarchive:
@@ -144,13 +145,14 @@
     dest: "{{ vagrant_install_path }}"
     remote_src: yes
   when: latest_vagrant_version != installed_vagrant_version
+  ignore_errors: true
 
 - name: Remover arquivo zip do Vagrant baixado
   file:
     path: "/tmp/vagrant_latest.zip"
     state: absent
   when: latest_vagrant_version != installed_vagrant_version
-
+  ignore_errors: true
 # Adicione tarefas adicionais se necessário para passos de instalação, como adicionar o Vagrant ao PATH
 
 ########################
