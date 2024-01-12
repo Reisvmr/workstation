@@ -4,17 +4,26 @@
 #         UPDATES      #
 ########################
 
-- name: Debian Like | Update Cache
-  apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
-  when: ansible_distribution == "Debian" or ansible_distribution == "Ubuntu"
+- name: Debian Like | Update System
+  become: yes 
+  apt:
+    name: "*"
+    state: latest
+  when: ansible_distribution in ["Debian", "Ubuntu"]
 
 - name: Debian Like | Update System
-  apt: name="*" state=latest
-  when: ansible_distribution == "Debian" or ansible_distribution == "Ubuntu"
+  become: true  # Assegura que a tarefa seja executada com privilégios de superusuário
+  apt: 
+    name: "*"  # Atualiza todos os pacotes
+    state: latest  # Para a versão mais recente
+  when: ansible_distribution in ["Debian", "Ubuntu"]  # Apenas em sistemas Debian ou Ubuntu
+
+
 ########################
 # Instalacao de Pacotes#
 ########################
 - name: Debian Like | Install common packages
+  become: true
   apt: 
     name: '{{ common_packages_debian }}' 
     install_recommends: yes
@@ -22,46 +31,54 @@
   when: ansible_distribution == "Debian" or ansible_distribution == "Ubuntu"
   #####################
 - name: Install Terminator
+  become: true
   apt:
     name: terminator
     state: present
 #######################
 # Configurando o Shell#
 #######################
-- name: Check if Oh-My-Zsh is installed
+- name: Verificar se Oh-My-Zsh está instalado
   stat:
     path: "{{ user_home }}/.oh-my-zsh"
   register: ohmyzsh
   become_user: "{{ ansible_user_id }}"
 
 - block:
-  - name: Install Oh-My-Zsh
+  
+  - name: Baixar o script de instalação do Oh-My-Zsh
+    become: yes
     ansible.builtin.get_url:
       url: "{{ oh_my_zsh_install_script }}"
       dest: "/tmp/install_oh_my_zsh.sh"
       mode: '0755'
+    register: download_oh_my_zsh
+    until: download_oh_my_zsh is succeeded
+    retries: 3
+    delay: 5
 
-  - name: Remove existing Oh-My-Zsh installation
+  - name: Remover instalação existente do Oh-My-Zsh
+    become: no
     ansible.builtin.file:
       path: "{{ user_home }}/.oh-my-zsh"
       state: absent
     when: ohmyzsh.stat.exists
-    become_user: "{{ ansible_user_id }}"
 
-  - name: Change default shell to ZSH
+  - name: Mudar o shell padrão para ZSH
+    become: no
     ansible.builtin.user:
       name: "{{ ansible_user_id }}"
       shell: /bin/zsh
-    when: ansible_facts['distribution'] in ["Debian", "Ubuntu"] # Exemplo de verificação do SO
+    when: ansible_facts['distribution'] in ["Debian", "Ubuntu"]
 
-  - name: Remove installation script
+  - name: Remover script de instalação do Oh-My-Zsh
     ansible.builtin.file:
       path: "/tmp/install_oh_my_zsh.sh"
       state: absent
 
   when: ohmyzsh.stat.exists == false
 
-- name: Set ZSH theme to Agnoster
+- name: Definir o tema ZSH para Agnoster
   ansible.builtin.lineinfile:
     path: "{{ user_home }}/.zshrc"
     regexp: '^ZSH_THEME=".*"'
@@ -69,19 +86,31 @@
     create: yes
   become_user: "{{ ansible_user_id }}"
 
-- name: Create ZSH completion directory
+- name: Criar diretório de conclusão do ZSH
   ansible.builtin.file:
     path: "{{ user_home }}/.oh-my-zsh/completions"
     state: directory
     mode: '0755'
   become_user: "{{ ansible_user_id }}"
 
-- name: Add autoload to compinit in .zshrc
+- name: Adicionar autoload para compinit no .zshrc
   ansible.builtin.lineinfile:
     path: "{{ user_home }}/.zshrc"
     line: 'autoload -U compinit && compinit'
     insertafter: EOF
   become_user: "{{ ansible_user_id }}"
+
+- name: Verificar se Oh-My-Zsh foi instalado com sucesso
+  stat:
+    path: "{{ user_home }}/.oh-my-zsh"
+  register: ohmyzsh_after_install
+  become_user: "{{ ansible_user_id }}"
+
+- name: Imprimir sucesso na instalação do Oh-My-Zsh
+  debug:
+    msg: "Oh-My-Zsh instalado com sucesso."
+  when: ohmyzsh_after_install.stat.exists
+
 #######################################################
 
 - name: Installing AWS CLI via pip3

@@ -1,8 +1,7 @@
+
 ---
-  
-- hosts: localhost
-  remote_user: reisvmr
-  become: yes
-  
+- name: Preparing Workstation
+  hosts: localhost
+  connection: local
   roles:
     - My-PC
