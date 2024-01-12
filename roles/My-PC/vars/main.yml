@@ -77,7 +77,6 @@ common_packages_debian:
   - tree
   - apt-transport-https
   - ca-certificates
-  - gnupg
   - python3-pip
   - make
   - git
@@ -87,7 +86,6 @@ common_packages_debian:
   - flameshot
   - fonts-hack
   - tilix
-  - virtualbox
   - mlocate
   - krita
   - jq

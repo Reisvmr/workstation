@@ -90,7 +90,6 @@
     name: awscli
     executable: pip3
 
-#######################################################
 - name: Install Google Signing Key
   apt_key:
     url: 'https://dl.google.com/linux/linux_signing_key.pub'
@@ -106,6 +105,7 @@
   apt:
     name: google-chrome-stable
     state: latest
+    update_cache: yes
 #######################################################
 ########################
 # Preparando Vagrant   #
@@ -122,36 +122,32 @@
     latest_vagrant_version: "{{ vagrant_releases.json.versions.keys() | max }}"
 
 - name: Verificar se a versão mais recente do Vagrant está instalada
-  command: "{{ vagrant_install_path }}/vagrant --version"
+  command: vagrant --version
   register: vagrant_installed
   ignore_errors: true
-
-- name: Analisar a versão instalada do Vagrant
-  set_fact:
-    installed_vagrant_version: "{{ vagrant_installed.stdout | regex_search('Vagrant (\\d+\\.\\d+\\.\\d+)', '\\1') | first }}"
-  when: vagrant_installed.stdout is defined
 
 - name: Baixar a versão mais recente do Vagrant
   get_url:
     url: "https://releases.hashicorp.com/vagrant/{{ latest_vagrant_version }}/vagrant_{{ latest_vagrant_version }}_linux_amd64.zip"
     dest: "/tmp/vagrant_latest.zip"
     mode: '0755'
-  when: latest_vagrant_version != installed_vagrant_version
+  when: latest_vagrant_version not in vagrant_installed.stdout
   ignore_errors: true
 
 - name: Extrair a versão mais recente do Vagrant
   unarchive:
     src: "/tmp/vagrant_latest.zip"
-    dest: "{{ vagrant_install_path }}"
+    dest: "/usr/local/bin"
     remote_src: yes
-  when: latest_vagrant_version != installed_vagrant_version
+    creates: "/usr/local/bin/vagrant"
+  when: latest_vagrant_version not in vagrant_installed.stdout
   ignore_errors: true
 
 - name: Remover arquivo zip do Vagrant baixado
   file:
     path: "/tmp/vagrant_latest.zip"
     state: absent
-  when: latest_vagrant_version != installed_vagrant_version
+  when: latest_vagrant_version not in vagrant_installed.stdout
   ignore_errors: true
 # Adicione tarefas adicionais se necessário para passos de instalação, como adicionar o Vagrant ao PATH
 
@@ -235,23 +231,6 @@
     dest: /usr/local/bin/gomplate
     mode: 755
 
-# Install Google Cloud SDK
-- name: Adicionar a chave do repositório do Google Cloud
-  apt_key:
-    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
-    state: present
-
-- name: Adicionar repositório do Google Cloud SDK
-  apt_repository:
-    repo: 'deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main'
-    state: present
-    filename: 'google-cloud-sdk'
-
-- name: Instalar o Google Cloud SDK
-  apt:
-    name: google-cloud-sdk
-    #update_cache: yes
-    state: latest
 #####################    
 # Instalar Microsoft #
 #####################
@@ -360,7 +339,8 @@
     line: 'plugins=(git docker docker-compose)'
     backrefs: yes
     insertafter: EOF
-  when: ansible_shell_type == 'zsh'
+  when: ansible_env.SHELL is defined and ansible_env.SHELL.endswith('/zsh')
+
 
 ###########################
 #                         #
@@ -401,14 +381,7 @@
     state: touch
     mode: '0644'
 
-- name: Create symlinks for ZSH completions
-  file:
-    src: "{{ kubectx_dest }}/completion/{{ item }}"
-    dest: "/home/{{ ansible_user_id }}/.oh-my-zsh/completions/_{{ item }}"
-    state: link
-  loop:
-    - kubectx.zsh
-    - kubens.zsh
+
 
 
     
@@ -445,10 +418,12 @@
   become: true
   apt_repository:
     repo: 'ppa:obsproject/obs-studio'
-- name: Install obs Studio
+
+- name: Install OBS Studio
   become: true
   apt:
-    name: obs-studi
+    name: obs-studio
+    update_cache: yes  # Adiciona update_cache para garantir que o cache do APT seja atualizado
 
 # Install Brave
 - name: Install Brave Key
@@ -456,14 +431,18 @@
   apt_key:
     url: 'https://brave-browser-apt-release.s3.brave.com/brave-core.asc'
     state: present
+
 - name: Install Brave Repository
   become: true
   apt_repository:
     repo: 'deb [arch=amd64] https://brave-browser-apt-release.s3.brave.com/ stable main'
     state: present
     filename: brave
+
 - name: Install Brave Browser
   become: true
   apt:
-    name: brave-browse
+    name: brave-browser
+    update_cache: yes  # Garante que o cache do APT seja atualizado
+
 
