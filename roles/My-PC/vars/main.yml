@@ -57,6 +57,7 @@ common_packages_redhat:
   - aspell
   - bash-completion
   - tree
+  - nmap
 
 common_packages_debian:
   - build-essential
